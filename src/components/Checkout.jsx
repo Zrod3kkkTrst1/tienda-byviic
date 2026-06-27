@@ -49,7 +49,8 @@ export default function Checkout({ onClose }) {
   const esMetro = metodoEntrega === 'metro'
   const esEnvio = metodoEntrega === 'ferguson' || metodoEntrega === 'unoexpress'
   const costoEntrega = esMetro ? COSTO_METRO : 0
-  const saldoPendienteTotal = saldoPendiente + costoEntrega
+  const mitad = totalProductos / 2
+  const pendienteTotal = mitad + costoEntrega
 
   function cambiarCarrier(key) {
     setMetodoEntrega(key)
@@ -91,8 +92,8 @@ export default function Checkout({ onClose }) {
         abonar: i.abonar, subtotal: i.precio * i.cantidad,
       })),
       total: totalProductos + costoEntrega,
-      pagado_ahora: pagarAhora,
-      saldo_pendiente: saldoPendienteTotal,
+      pagado_ahora: mitad,
+      saldo_pendiente: pendienteTotal,
       metodo_pago: 'whatsapp',
       estado,
       notas: notasEnvio,
@@ -129,9 +130,9 @@ export default function Checkout({ onClose }) {
       '',
       ...lineas,
       '',
-      `*Total productos:* ${fmt(totalProductos)}`,
-      `*Pago ahora:* ${fmt(pagarAhora)}`,
-      saldoPendienteTotal > 0 ? `*Pendiente al entregar:* ${fmt(saldoPendienteTotal)}${costoEntrega > 0 ? ` (incl. delivery $${COSTO_METRO.toFixed(2)})` : ''}` : '',
+      `*Total:* ${fmt(totalProductos)}`,
+      `*Abono (50%):* ${fmt(mitad)}`,
+      `*Pendiente al entregar:* ${fmt(pendienteTotal)}${costoEntrega > 0 ? ` (incl. delivery $${COSTO_METRO.toFixed(2)})` : ''}`,
       ...entregaInfo,
     ].filter(l => l !== null).join('\n')
   }
@@ -171,19 +172,17 @@ export default function Checkout({ onClose }) {
           {/* Resumen */}
           <div style={styles.resumen}>
             <div style={styles.resumenRow}>
-              <span>Total productos</span>
+              <span>Total</span>
               <span style={{ fontWeight: 600 }}>{fmt(totalProductos)}</span>
             </div>
             <div style={{ ...styles.resumenRow, color: 'var(--color-gold)' }}>
-              <span>A pagar ahora</span>
-              <span style={{ fontWeight: 700 }}>{fmt(pagarAhora)}</span>
+              <span>A pagar ahora (50%)</span>
+              <span style={{ fontWeight: 700 }}>{fmt(mitad)}</span>
             </div>
-            {saldoPendienteTotal > 0 && (
-              <div style={{ ...styles.resumenRow, fontSize: 13, color: 'var(--color-text-muted)' }}>
-                <span>Pendiente al entregar{costoEntrega > 0 ? ' + delivery $1.75' : ''}</span>
-                <span>{fmt(saldoPendienteTotal)}</span>
-              </div>
-            )}
+            <div style={{ ...styles.resumenRow, fontSize: 13, color: 'var(--color-text-muted)' }}>
+              <span>Pendiente al entregar{costoEntrega > 0 ? ' + delivery $1.75' : ''}</span>
+              <span>{fmt(pendienteTotal)}</span>
+            </div>
           </div>
 
           <hr className="divider" />
