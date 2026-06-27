@@ -83,7 +83,7 @@ export default function ProductForm({ producto, onSave, onClose }) {
             <input className="input" value={form.categoria} onChange={e => set('categoria', e.target.value)} placeholder="Ej: Maquillaje, Skincare" />
           </Field>
           <Field label="URL de foto">
-            <input className="input" type="url" value={form.foto_url} onChange={e => set('foto_url', e.target.value)} placeholder="https://..." />
+            <input className="input" type="text" value={form.foto_url} onChange={e => set('foto_url', e.target.value)} placeholder="https://..." />
           </Field>
           {form.foto_url && (
             <img src={form.foto_url} alt="Vista previa" style={styles.preview} onError={e => e.target.style.display='none'} />
