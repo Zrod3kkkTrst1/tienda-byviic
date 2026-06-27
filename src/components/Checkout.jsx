@@ -34,7 +34,7 @@ export default function Checkout({ onClose }) {
   const [diaRetiro,      setDiaRetiro]      = useState('')
   const [estacionMetro,  setEstacionMetro]  = useState('')
   const [horarioTienda,  setHorarioTienda]  = useState('')
-  const [horarioDetalle, setHorarioDetalle] = useState('')
+  const [horarioMetro,   setHorarioMetro]   = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
 
@@ -42,11 +42,11 @@ export default function Checkout({ onClose }) {
     supabase
       .from('configuracion')
       .select('clave, valor')
-      .in('clave', ['horario_tienda', 'horario_detalle'])
+      .in('clave', ['horario_tienda', 'horario_metro'])
       .then(({ data }) => {
         data?.forEach(row => {
           if (row.clave === 'horario_tienda') setHorarioTienda(row.valor)
-          if (row.clave === 'horario_detalle') setHorarioDetalle(row.valor)
+          if (row.clave === 'horario_metro')  setHorarioMetro(row.valor)
         })
       })
   }, [])
@@ -253,18 +253,11 @@ export default function Checkout({ onClose }) {
                 <p style={styles.metroBoxTexto}>
                   Escribe la estación donde quieres recibir tu pedido. Consulta los días, horarios y estaciones disponibles en la sección <em>"Días y horario de entregas"</em> de la página.
                 </p>
-                {horarioDetalle && (() => {
-                  const lineas = horarioDetalle
-                    .split('\n')
-                    .filter(l => !/s[áa]bado|domingo/i.test(l))
-                    .join('\n')
-                    .trim()
-                  return lineas ? (
-                    <p style={{ ...styles.metroBoxTexto, marginTop: 10, borderTop: '1px solid rgba(59,130,246,0.15)', paddingTop: 10, whiteSpace: 'pre-line' }}>
-                      {lineas}
-                    </p>
-                  ) : null
-                })()}
+                {horarioMetro && (
+                  <p style={{ ...styles.metroBoxTexto, marginTop: 10, borderTop: '1px solid rgba(59,130,246,0.15)', paddingTop: 10, whiteSpace: 'pre-line' }}>
+                    {horarioMetro}
+                  </p>
+                )}
               </div>
               <div style={styles.field}>
                 <label style={styles.label}>¿En qué estación de metro?</label>

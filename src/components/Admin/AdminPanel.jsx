@@ -444,6 +444,13 @@ function EntregasTab() {
         placeholder={"Ej:\nLunes a viernes: 9am – 6pm\nSábados: 9am – 2pm"}
         minHeight={120}
       />
+      <ConfigField
+        clave="horario_metro"
+        titulo="Horario de entregas en estación de metro"
+        descripcion="Días, estaciones y horarios para entregas en el metro. Se muestra en el checkout cuando el cliente elige entrega en estación de metro."
+        placeholder={"DÍAS DE ENTREGA\n📍LUNES — Estación 4:30\n📍MARTES — Estación 1:30\n\nIMPORTANTE\nSean puntuales..."}
+        minHeight={280}
+      />
     </div>
   )
 }
