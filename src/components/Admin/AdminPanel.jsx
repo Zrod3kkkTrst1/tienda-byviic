@@ -89,6 +89,20 @@ function PedidosTab() {
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, notas } : p))
   }
 
+  async function eliminarPedido(id) {
+    if (!confirm('¿Eliminar este pedido? Esta acción no se puede deshacer.')) return
+    await supabase.from('pedidos').delete().eq('id', id)
+    setPedidos(prev => prev.filter(p => p.id !== id))
+    setExpandido(null)
+  }
+
+  async function eliminarTodos() {
+    if (!confirm('¿Eliminar TODOS los pedidos? Esta acción no se puede deshacer.')) return
+    await supabase.from('pedidos').delete().neq('id', 0)
+    setPedidos([])
+    setExpandido(null)
+  }
+
   const pedidosFiltrados = filtro === 'todos'
     ? pedidos
     : pedidos.filter(p => p.estado === filtro)
@@ -138,7 +152,18 @@ function PedidosTab() {
         <h2 style={styles.sectionTitle}>
           {filtro === 'todos' ? `Todos los pedidos (${pedidos.length})` : `${pedidosFiltrados.length} pedido${pedidosFiltrados.length !== 1 ? 's' : ''}`}
         </h2>
-        <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={cargar}>Actualizar</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={cargar}>Actualizar</button>
+          {pedidos.length > 0 && (
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: 12, color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+              onClick={eliminarTodos}
+            >
+              Eliminar todos
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -260,6 +285,15 @@ function PedidosTab() {
                         Guardar nota
                       </button>
                     )}
+
+                    <hr className="divider" />
+                    <button
+                      className="btn btn-ghost"
+                      style={{ fontSize: 12, color: 'var(--color-error)', borderColor: 'var(--color-error)', alignSelf: 'flex-start' }}
+                      onClick={() => eliminarPedido(p.id)}
+                    >
+                      Eliminar pedido
+                    </button>
                   </div>
                 )}
               </div>
