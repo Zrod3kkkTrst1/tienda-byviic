@@ -253,9 +253,18 @@ export default function Checkout({ onClose }) {
                 <p style={styles.metroBoxTexto}>
                   Escribe la estación donde quieres recibir tu pedido. Consulta los días, horarios y estaciones disponibles en la sección <em>"Días y horario de entregas"</em> de la página.
                 </p>
-                <p style={{ ...styles.metroBoxTexto, marginTop: 10, borderTop: '1px solid rgba(59,130,246,0.15)', paddingTop: 10 }}>
-                  📅 Disponible de <strong>lunes a viernes</strong>
-                </p>
+                {horarioDetalle && (() => {
+                  const lineas = horarioDetalle
+                    .split('\n')
+                    .filter(l => !/s[áa]bado|domingo/i.test(l))
+                    .join('\n')
+                    .trim()
+                  return lineas ? (
+                    <p style={{ ...styles.metroBoxTexto, marginTop: 10, borderTop: '1px solid rgba(59,130,246,0.15)', paddingTop: 10, whiteSpace: 'pre-line' }}>
+                      {lineas}
+                    </p>
+                  ) : null
+                })()}
               </div>
               <div style={styles.field}>
                 <label style={styles.label}>¿En qué estación de metro?</label>
