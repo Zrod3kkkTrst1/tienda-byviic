@@ -6,10 +6,13 @@ import { WHATSAPP_NUMERO, NOMBRE_TIENDA } from '../lib/constants'
 const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(n)
 
 const METODOS_ENTREGA = [
-  { key: 'retiro',     label: 'Retiro en Tienda',   desc: 'Según el horario de entregas' },
-  { key: 'ferguson',   label: 'Ferguson',           desc: 'Envío a provincias' },
-  { key: 'unoexpress', label: 'Uno Express',        desc: 'Envío a provincias' },
+  { key: 'retiro',     label: 'Retiro en Tienda',          desc: 'Según el horario de entregas' },
+  { key: 'metro',      label: 'Estación de Metro',         desc: 'Delivery $1.75' },
+  { key: 'ferguson',   label: 'Ferguson',                  desc: 'Envío a provincias' },
+  { key: 'unoexpress', label: 'Uno Express',               desc: 'Envío a provincias' },
 ]
+
+const COSTO_METRO = 1.75
 
 const PROVINCIAS = [
   'Panamá','Panamá Oeste','Chiriquí','Coclé','Colón',
@@ -29,6 +32,7 @@ export default function Checkout({ onClose }) {
   const [metodoEntrega, setMetodoEntrega] = useState('retiro')
 
   const [diaRetiro,      setDiaRetiro]      = useState('')
+  const [estacionMetro,  setEstacionMetro]  = useState('')
   const [horarioTienda,  setHorarioTienda]  = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
@@ -42,13 +46,17 @@ export default function Checkout({ onClose }) {
       .then(({ data }) => { if (data?.valor) setHorarioTienda(data.valor) })
   }, [])
 
-  const esEnvio = metodoEntrega !== 'retiro'
+  const esMetro = metodoEntrega === 'metro'
+  const esEnvio = metodoEntrega === 'ferguson' || metodoEntrega === 'unoexpress'
+  const costoEntrega = esMetro ? COSTO_METRO : 0
+  const pagarAhoraTotal = pagarAhora + costoEntrega
 
   function cambiarCarrier(key) {
     setMetodoEntrega(key)
     setProvincia('')
     setSucursal('')
     setDiaRetiro('')
+    setEstacionMetro('')
   }
 
   function cambiarProvincia(p) {
@@ -60,6 +68,7 @@ export default function Checkout({ onClose }) {
   const esValido =
     nombre.trim().length > 1 &&
     telefono.trim().length > 6 &&
+    (!esMetro || estacionMetro.trim().length > 1) &&
     (!esEnvio || (nombreCompleto.trim() && cedula.trim() && telefonoEnvio.trim().length > 6 && provincia && sucursal))
 
   async function guardarPedido() {
@@ -69,7 +78,9 @@ export default function Checkout({ onClose }) {
 
     const notasEnvio = esEnvio
       ? `Envío por ${empresa} — Nombre: ${nombreCompleto.trim()} | Cédula: ${cedula.trim()} | Tel: ${telefonoEnvio.trim()} | Sucursal: ${sucursal}, ${provincia}`
-      : `Retiro en tienda${diaRetiro.trim() ? ` — Día: ${diaRetiro.trim()}` : ''}`
+      : esMetro
+        ? `Retiro en estación de metro — Estación: ${estacionMetro.trim()} | Delivery: $${COSTO_METRO.toFixed(2)}`
+        : `Retiro en tienda${diaRetiro.trim() ? ` — Día: ${diaRetiro.trim()}` : ''}`
 
     const { error } = await supabase.from('pedidos').insert({
       cliente_nombre: nombre.trim(),
@@ -79,8 +90,8 @@ export default function Checkout({ onClose }) {
         cantidad: i.cantidad, por_encargo: i.por_encargo,
         abonar: i.abonar, subtotal: i.precio * i.cantidad,
       })),
-      total: totalProductos,
-      pagado_ahora: pagarAhora,
+      total: totalProductos + costoEntrega,
+      pagado_ahora: pagarAhoraTotal,
       saldo_pendiente: saldoPendiente,
       metodo_pago: 'whatsapp',
       estado,
@@ -109,15 +120,18 @@ export default function Checkout({ onClose }) {
           `📱 Teléfono: ${telefonoEnvio.trim()}`,
           `📍 Sucursal: ${sucursal} — ${provincia}`,
         ]
-      : [``, `📍 *Retiro en tienda*`, ...(diaRetiro.trim() ? [`📅 Día de retiro: ${diaRetiro.trim()}`] : []), `📱 Tel: ${telefono.trim()}`]
+      : esMetro
+        ? [``, `🚇 *Entrega en estación de metro*`, `📍 Estación: ${estacionMetro.trim()}`, `🛵 Delivery: ${fmt(COSTO_METRO)}`, `📱 Tel: ${telefono.trim()}`]
+        : [``, `📍 *Retiro en tienda*`, ...(diaRetiro.trim() ? [`📅 Día de retiro: ${diaRetiro.trim()}`] : []), `📱 Tel: ${telefono.trim()}`]
 
     return [
       `¡Hola! Soy ${nombre.trim()} y quisiera hacer este pedido en *${NOMBRE_TIENDA}*:`,
       '',
       ...lineas,
       '',
-      `*Total:* ${fmt(totalProductos)}`,
-      `*Pago ahora:* ${fmt(pagarAhora)}`,
+      `*Total productos:* ${fmt(totalProductos)}`,
+      costoEntrega > 0 ? `*Delivery metro:* ${fmt(costoEntrega)}` : '',
+      `*Pago ahora:* ${fmt(pagarAhoraTotal)}`,
       saldoPendiente > 0 ? `*Pendiente al entregar:* ${fmt(saldoPendiente)}` : '',
       ...entregaInfo,
     ].filter(l => l !== null).join('\n')
@@ -158,12 +172,18 @@ export default function Checkout({ onClose }) {
           {/* Resumen */}
           <div style={styles.resumen}>
             <div style={styles.resumenRow}>
-              <span>Total</span>
+              <span>Total productos</span>
               <span style={{ fontWeight: 600 }}>{fmt(totalProductos)}</span>
             </div>
+            {costoEntrega > 0 && (
+              <div style={{ ...styles.resumenRow, fontSize: 13, color: 'var(--color-text-muted)' }}>
+                <span>Delivery (metro)</span>
+                <span>{fmt(costoEntrega)}</span>
+              </div>
+            )}
             <div style={{ ...styles.resumenRow, color: 'var(--color-gold)' }}>
               <span>A pagar ahora</span>
-              <span style={{ fontWeight: 700 }}>{fmt(pagarAhora)}</span>
+              <span style={{ fontWeight: 700 }}>{fmt(pagarAhoraTotal)}</span>
             </div>
             {saldoPendiente > 0 && (
               <div style={{ ...styles.resumenRow, fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -206,8 +226,8 @@ export default function Checkout({ onClose }) {
             </div>
           </div>
 
-          {/* Día de retiro */}
-          {!esEnvio && (
+          {/* Día de retiro en tienda */}
+          {metodoEntrega === 'retiro' && (
             <div style={styles.form}>
               {horarioTienda && (
                 <div style={styles.horarioBox}>
@@ -223,6 +243,28 @@ export default function Checkout({ onClose }) {
                   placeholder="Ej: Lunes 30, martes en la tarde..."
                   value={diaRetiro}
                   onChange={e => setDiaRetiro(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Estación de metro */}
+          {esMetro && (
+            <div style={styles.form}>
+              <div style={styles.metroBox}>
+                <p style={styles.metroBoxTitulo}>🚇 Delivery a tu estación — <strong>{fmt(COSTO_METRO)}</strong></p>
+                <p style={styles.metroBoxTexto}>
+                  Escribe la estación donde quieres recibir tu pedido. Consulta los días, horarios y estaciones disponibles en la sección <em>"Días y horario de entregas"</em> de la página.
+                </p>
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>¿En qué estación de metro?</label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Ej: Albrook, 5 de Mayo, Iglesia del Carmen..."
+                  value={estacionMetro}
+                  onChange={e => setEstacionMetro(e.target.value)}
                 />
               </div>
             </div>
@@ -422,6 +464,23 @@ const styles = {
     color: 'var(--color-text-muted)',
     lineHeight: 1.7,
     whiteSpace: 'pre-line',
+  },
+  metroBox: {
+    background: '#f0f7ff',
+    borderRadius: 8,
+    padding: '14px 16px',
+    border: '1px solid rgba(59,130,246,0.2)',
+  },
+  metroBoxTitulo: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#2563eb',
+    marginBottom: 6,
+  },
+  metroBoxTexto: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 1.7,
   },
   yappyWrap: {
     marginTop: -4,
