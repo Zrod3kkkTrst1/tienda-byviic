@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables (sensitive credentials)
+.env
+.env.local
+.env.*.local
+
+# Windows WSL2 metadata
+*.Zone.Identifier
+*:Zone.Identifier
+
+# Vite cache
+.vite/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
