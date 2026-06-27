@@ -334,16 +334,16 @@ const styles = {
     transition: 'background 0.2s',
   },
   modalImgWrap: {
-    aspectRatio: '16/9',
+    aspectRatio: '4/5',
     overflow: 'hidden',
-    background: 'var(--color-bg-warm)',
+    background: '#f7f3ef',
     borderRadius: '12px 12px 0 0',
     position: 'relative',
   },
   modalImg: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'contain',
     transition: 'opacity 0.2s ease',
   },
   dots: {
