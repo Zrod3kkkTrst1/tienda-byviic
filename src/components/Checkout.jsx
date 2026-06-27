@@ -34,16 +34,21 @@ export default function Checkout({ onClose }) {
   const [diaRetiro,      setDiaRetiro]      = useState('')
   const [estacionMetro,  setEstacionMetro]  = useState('')
   const [horarioTienda,  setHorarioTienda]  = useState('')
+  const [horarioDetalle, setHorarioDetalle] = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
 
   useEffect(() => {
     supabase
       .from('configuracion')
-      .select('valor')
-      .eq('clave', 'horario_tienda')
-      .single()
-      .then(({ data }) => { if (data?.valor) setHorarioTienda(data.valor) })
+      .select('clave, valor')
+      .in('clave', ['horario_tienda', 'horario_detalle'])
+      .then(({ data }) => {
+        data?.forEach(row => {
+          if (row.clave === 'horario_tienda') setHorarioTienda(row.valor)
+          if (row.clave === 'horario_detalle') setHorarioDetalle(row.valor)
+        })
+      })
   }, [])
 
   const esMetro = metodoEntrega === 'metro'
@@ -248,6 +253,11 @@ export default function Checkout({ onClose }) {
                 <p style={styles.metroBoxTexto}>
                   Escribe la estación donde quieres recibir tu pedido. Consulta los días, horarios y estaciones disponibles en la sección <em>"Días y horario de entregas"</em> de la página.
                 </p>
+                {horarioDetalle && (
+                  <p style={{ ...styles.metroBoxTexto, marginTop: 10, borderTop: '1px solid rgba(59,130,246,0.15)', paddingTop: 10, whiteSpace: 'pre-line' }}>
+                    {horarioDetalle}
+                  </p>
+                )}
               </div>
               <div style={styles.field}>
                 <label style={styles.label}>¿En qué estación de metro?</label>
