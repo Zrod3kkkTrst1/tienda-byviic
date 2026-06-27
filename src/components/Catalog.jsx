@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import ProductCard from './ProductCard'
 import useScrollReveal from '../hooks/useScrollReveal'
@@ -9,8 +9,25 @@ const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency:
 function ProductModal({ product, onClose }) {
   const { addItem } = useCart()
   const [imgIndex, setImgIndex] = useState(0)
+  const touchStartX = useRef(null)
 
   if (!product) return null
+
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null || todasLasMedia.length < 2) return
+    const delta = touchStartX.current - e.changedTouches[0].clientX
+    if (Math.abs(delta) < 50) return
+    if (delta > 0) {
+      setImgIndex(i => (i + 1) % todasLasMedia.length)
+    } else {
+      setImgIndex(i => (i - 1 + todasLasMedia.length) % todasLasMedia.length)
+    }
+    touchStartX.current = null
+  }
 
   const todasLasMedia = [
     product.foto_url,
@@ -34,7 +51,11 @@ function ProductModal({ product, onClose }) {
         </button>
 
         {/* Product gallery (images + video) */}
-        <div style={styles.modalImgWrap}>
+        <div
+          style={styles.modalImgWrap}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           {todasLasMedia.length > 0 ? (
             <>
               {isVideo(todasLasMedia[imgIndex]) ? (
