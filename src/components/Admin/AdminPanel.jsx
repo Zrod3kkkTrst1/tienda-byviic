@@ -354,8 +354,16 @@ function ProductosTab() {
 
   async function eliminar(id) {
     if (!confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')) return
-    await supabase.from('productos').delete().eq('id', id)
-    cargar()
+    const { data, error } = await supabase.from('productos').delete().eq('id', id).select()
+    if (error) {
+      alert('Error al eliminar: ' + error.message)
+      return
+    }
+    if (!data || data.length === 0) {
+      alert('No se pudo eliminar el producto.\n\nFaltan permisos en Supabase. Ve al SQL Editor y ejecuta:\n\nCREATE POLICY "eliminar productos" ON productos FOR DELETE USING (true);')
+      return
+    }
+    setProductos(prev => prev.filter(p => p.id !== id))
   }
 
   return (
