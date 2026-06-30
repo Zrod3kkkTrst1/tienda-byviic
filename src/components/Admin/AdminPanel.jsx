@@ -346,6 +346,11 @@ function ProductosTab() {
     cargar()
   }
 
+  async function toggleAgotado(p) {
+    await supabase.from('productos').update({ agotado: !p.agotado }).eq('id', p.id)
+    cargar()
+  }
+
   async function eliminar(id) {
     if (!confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')) return
     await supabase.from('productos').delete().eq('id', id)
@@ -390,13 +395,25 @@ function ProductosTab() {
                   <td style={styles.td}>{fmt(p.precio)}</td>
                   <td style={styles.td}>{p.categoria || '—'}</td>
                   <td style={styles.td}>
-                    <span className={p.activo ? 'badge badge-available' : 'badge'} style={!p.activo ? { background: '#f5f5f5', color: '#999', border: '1px solid #e0e0e0' } : {}}>
-                      {p.activo ? 'Activo' : 'Inactivo'}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span className={p.activo ? 'badge badge-available' : 'badge'} style={!p.activo ? { background: '#f5f5f5', color: '#999', border: '1px solid #e0e0e0' } : {}}>
+                        {p.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                      {p.agotado && (
+                        <span className="badge" style={{ background: '#fff0f0', color: '#c0392b', border: '1px solid #f0c0b8' }}>Agotado</span>
+                      )}
+                    </div>
                   </td>
                   <td style={styles.td}>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button className="btn btn-ghost" style={styles.actionBtn} onClick={() => { setFormProducto(p); setShowForm(true) }}>Editar</button>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ ...styles.actionBtn, ...(p.agotado ? { background: '#fff0f0', color: '#c0392b', borderColor: '#e0a09a' } : {}) }}
+                        onClick={() => toggleAgotado(p)}
+                      >
+                        {p.agotado ? 'Reponer' : 'Agotado'}
+                      </button>
                       <button className="btn btn-ghost" style={styles.actionBtn} onClick={() => toggleActivo(p)}>{p.activo ? 'Desactivar' : 'Activar'}</button>
                       <button className="btn btn-ghost" style={{ ...styles.actionBtn, color: 'var(--color-error)', borderColor: 'var(--color-error)' }} onClick={() => eliminar(p.id)}>Borrar</button>
                     </div>

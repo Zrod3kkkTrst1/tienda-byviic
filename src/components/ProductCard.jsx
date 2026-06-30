@@ -38,12 +38,17 @@ export default function ProductCard({ product, onDetail }) {
           </div>
         )}
         <div style={styles.badgeWrap}>
-          {product.por_encargo ? (
+          {product.agotado ? (
+            <span className="badge" style={{ background: '#f5f5f5', color: '#999', border: '1px solid #ddd' }}>Agotado</span>
+          ) : product.por_encargo ? (
             <span className="badge badge-order">Por encargo</span>
           ) : (
             <span className="badge badge-available">Disponible</span>
           )}
         </div>
+        {product.agotado && (
+          <div style={styles.agotadoOverlay} />
+        )}
       </div>
 
       <div style={styles.body}>
@@ -61,13 +66,14 @@ export default function ProductCard({ product, onDetail }) {
           </div>
           <button
             className="btn btn-primary"
-            style={{ padding: '10px 18px', fontSize: 12 }}
+            style={{ padding: '10px 18px', fontSize: 12, opacity: product.agotado ? 0.4 : 1 }}
+            disabled={product.agotado}
             onClick={e => {
               e.stopPropagation()
               addItem(product)
             }}
           >
-            Agregar
+            {product.agotado ? 'Agotado' : 'Agregar'}
           </button>
         </div>
       </div>
@@ -96,6 +102,11 @@ const styles = {
     aspectRatio: '4/3',
     overflow: 'hidden',
     background: 'var(--color-bg-warm)',
+  },
+  agotadoOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(255,255,255,0.45)',
   },
   image: {
     width: '100%',
