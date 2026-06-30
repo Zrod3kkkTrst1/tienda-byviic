@@ -347,7 +347,8 @@ function ProductosTab() {
   }
 
   async function toggleAgotado(p) {
-    await supabase.from('productos').update({ agotado: !p.agotado }).eq('id', p.id)
+    const { error } = await supabase.from('productos').update({ agotado: !p.agotado }).eq('id', p.id)
+    if (error) { alert('Error al actualizar: ' + error.message); return }
     cargar()
   }
 

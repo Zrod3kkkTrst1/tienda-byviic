@@ -107,7 +107,9 @@ function ProductModal({ product, onClose }) {
         {/* Details */}
         <div style={styles.modalBody}>
           <div style={styles.modalTop}>
-            {product.por_encargo ? (
+            {product.agotado ? (
+              <span className="badge" style={{ background: '#f5f5f5', color: '#999', border: '1px solid #ddd' }}>Agotado</span>
+            ) : product.por_encargo ? (
               <span className="badge badge-order">Por encargo</span>
             ) : (
               <span className="badge badge-available">Disponible</span>
@@ -127,12 +129,14 @@ function ProductModal({ product, onClose }) {
             </div>
             <button
               className="btn btn-primary"
+              disabled={product.agotado}
+              style={{ opacity: product.agotado ? 0.4 : 1 }}
               onClick={() => {
                 addItem(product)
                 onClose()
               }}
             >
-              Agregar al carrito
+              {product.agotado ? 'Agotado' : 'Agregar al carrito'}
             </button>
           </div>
         </div>
