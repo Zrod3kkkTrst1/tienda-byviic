@@ -91,14 +91,26 @@ function PedidosTab() {
 
   async function eliminarPedido(id) {
     if (!confirm('¿Eliminar este pedido? Esta acción no se puede deshacer.')) return
-    await supabase.from('pedidos').delete().eq('id', id)
+    const { data, error } = await supabase.from('pedidos').delete().eq('id', id).select()
+    if (error) {
+      alert('Error al eliminar: ' + error.message)
+      return
+    }
+    if (!data || data.length === 0) {
+      alert('No se pudo eliminar el pedido.\n\nFaltan permisos en Supabase. Ve al SQL Editor y ejecuta:\n\nCREATE POLICY "eliminar pedidos" ON pedidos FOR DELETE USING (true);')
+      return
+    }
     setPedidos(prev => prev.filter(p => p.id !== id))
     setExpandido(null)
   }
 
   async function eliminarTodos() {
     if (!confirm('¿Eliminar TODOS los pedidos? Esta acción no se puede deshacer.')) return
-    await supabase.from('pedidos').delete().neq('id', 0)
+    const { error } = await supabase.from('pedidos').delete().not('id', 'is', null)
+    if (error) {
+      alert('Error al eliminar pedidos: ' + error.message + '\n\nSi persiste, ejecuta en Supabase SQL Editor:\n\nCREATE POLICY "eliminar pedidos" ON pedidos FOR DELETE USING (true);')
+      return
+    }
     setPedidos([])
     setExpandido(null)
   }
@@ -333,7 +345,11 @@ function ProductosTab() {
   async function handleSave(payload) {
     let error
     if (formProducto?.id) {
-      ({ error } = await supabase.from('productos').update(payload).eq('id', formProducto.id))
+      const { data, error: updateError } = await supabase.from('productos').update(payload).eq('id', formProducto.id).select()
+      error = updateError
+      if (!error && (!data || data.length === 0)) {
+        error = { message: 'El producto no se actualizó. Puede faltar la política UPDATE en Supabase:\n\nCREATE POLICY "editar productos" ON productos FOR UPDATE USING (true);' }
+      }
     } else {
       ({ error } = await supabase.from('productos').insert(payload))
     }

@@ -176,7 +176,7 @@ export default function ProductForm({ producto, onSave, onClose }) {
                   src={form.foto_url}
                   alt="Portada"
                   style={styles.preview}
-                  onError={e => e.target.style.display='none'}
+                  onError={e => { e.target.style.display = 'none'; setError('⚠️ La foto subió pero no se puede previsualizar. Verifica que el bucket "fotos-productos" sea público en Supabase Storage → Buckets → fotos-productos → Make public.') }}
                 />
                 <button
                   type="button"
@@ -255,7 +255,7 @@ export default function ProductForm({ producto, onSave, onClose }) {
                           src={url}
                           alt={label}
                           style={styles.galeriaImg}
-                          onError={e => { e.target.style.opacity = '0.2' }}
+                          onError={e => { e.target.style.opacity = '0.2'; setError('⚠️ Una foto de la galería no se puede previsualizar. Verifica que el bucket "fotos-productos" sea público en Supabase Storage.') }}
                         />
                       )}
                     </div>
