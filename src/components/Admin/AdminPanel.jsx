@@ -4,6 +4,32 @@ import ProductForm from './ProductForm'
 
 const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(n ?? 0)
 
+function telParaWA(tel) {
+  const digitos = (tel || '').replace(/\D/g, '')
+  if (!digitos) return null
+  return digitos.startsWith('507') ? digitos : `507${digitos}`
+}
+
+function mensajeConfirmacion(p) {
+  const lineas = (p.items || []).map(i => `• ${i.nombre} x${i.cantidad} — ${fmt(i.subtotal)}`)
+  return [
+    `¡Hola ${p.cliente_nombre}! Te escribo por tu pedido en *BYVIIC*:`,
+    '',
+    ...lineas,
+    '',
+    `*Total:* ${fmt(p.total)}`,
+    p.saldo_pendiente > 0 ? `*Saldo pendiente:* ${fmt(p.saldo_pendiente)}` : '*Pago completo*',
+    '',
+    '¿Vas a querer el pedido? Confírmame para seguir con la preparación 😊',
+  ].join('\n')
+}
+
+function waLinkPedido(p) {
+  const numero = telParaWA(p.cliente_tel)
+  if (!numero) return null
+  return `https://wa.me/${numero}?text=${encodeURIComponent(mensajeConfirmacion(p))}`
+}
+
 const ESTADOS_FLUJO = [
   { key: 'nuevo',              label: 'Nuevo',               bg: '#e8f4fd', color: '#2980b9' },
   { key: 'confirmado',         label: 'Confirmado',          bg: '#f0e8fd', color: '#7b2fb9' },
@@ -211,6 +237,20 @@ function PedidosTab() {
                   <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: info.bg, color: info.color, whiteSpace: 'nowrap' }}>
                     {info.label}
                   </span>
+                  {waLinkPedido(p) && (
+                    <a
+                      href={waLinkPedido(p)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      title="Escribirle por WhatsApp"
+                      style={styles.waBtn}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/>
+                      </svg>
+                    </a>
+                  )}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" style={{ marginLeft: 8, transform: abierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }}>
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
@@ -267,15 +307,28 @@ function PedidosTab() {
                     </div>
 
                     {/* Acciones de pago */}
-                    {p.saldo_pendiente > 0 && (
-                      <button
-                        className="btn btn-outline"
-                        style={{ fontSize: 12, marginTop: 8, alignSelf: 'flex-start' }}
-                        onClick={() => marcarSaldoPagado(p.id)}
-                      >
-                        Marcar saldo pagado ({fmt(p.saldo_pendiente)})
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                      {p.saldo_pendiente > 0 && (
+                        <button
+                          className="btn btn-outline"
+                          style={{ fontSize: 12 }}
+                          onClick={() => marcarSaldoPagado(p.id)}
+                        >
+                          Marcar saldo pagado ({fmt(p.saldo_pendiente)})
+                        </button>
+                      )}
+                      {waLinkPedido(p) && (
+                        <a
+                          href={waLinkPedido(p)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-outline"
+                          style={{ fontSize: 12, textDecoration: 'none' }}
+                        >
+                          Escribirle por WhatsApp
+                        </a>
+                      )}
+                    </div>
 
                     <hr className="divider" />
 
@@ -768,5 +821,16 @@ const styles = {
     fontFamily: 'var(--font-sans)',
     cursor: 'pointer',
     transition: 'all 0.15s',
+  },
+  waBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 30,
+    height: 30,
+    borderRadius: '50%',
+    background: '#e9f9ef',
+    color: '#25a854',
+    flexShrink: 0,
   },
 }
