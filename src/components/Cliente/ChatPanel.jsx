@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useSesionCliente } from '../../context/SesionClienteContext'
+import NotificacionesToggle from '../NotificacionesToggle'
 
 export default function ChatPanel({ isOpen, onClose }) {
   const { sesion } = useSesionCliente()
@@ -82,6 +83,10 @@ export default function ChatPanel({ isOpen, onClose }) {
           </button>
         </div>
 
+        <div style={styles.notifRow}>
+          <NotificacionesToggle telefono={sesion.telefono} etiqueta="Avísame cuando respondan" />
+        </div>
+
         <div style={styles.mensajes} ref={listRef}>
           {loading ? (
             <div style={styles.centered}><div className="spinner" /></div>
@@ -160,6 +165,10 @@ const styles = {
     padding: 4,
     display: 'flex',
     cursor: 'pointer',
+  },
+  notifRow: {
+    padding: '10px 24px',
+    borderBottom: '1px solid var(--color-border-light)',
   },
   mensajes: {
     flex: 1,

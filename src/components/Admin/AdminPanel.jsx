@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { normalizarTelefono } from '../../lib/telefono'
 import ProductForm from './ProductForm'
 import ChatsTab from './ChatsTab'
-import NotificacionesToggle from './NotificacionesToggle'
+import NotificacionesToggle from '../NotificacionesToggle'
 
 const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(n ?? 0)
 

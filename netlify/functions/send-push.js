@@ -24,17 +24,22 @@ export const handler = async (event) => {
   }
 
   const mensaje = payload.record
-  if (!mensaje || mensaje.autor !== 'cliente') {
-    return { statusCode: 200, body: 'Ignorado (no es mensaje de cliente)' }
+  if (!mensaje || (mensaje.autor !== 'cliente' && mensaje.autor !== 'admin')) {
+    return { statusCode: 200, body: 'Ignorado' }
   }
 
   webpush.setVapidDetails('mailto:soporte@byviic.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
-  const { data: subs, error } = await supabase
-    .from('push_subscriptions')
-    .select('*')
-    .eq('activo', true)
+
+  // Mensaje de cliente -> avisa a los admins (telefono NULL).
+  // Mensaje de admin -> avisa solo al cliente de esa conversacion.
+  let query = supabase.from('push_subscriptions').select('*').eq('activo', true)
+  query = mensaje.autor === 'cliente'
+    ? query.is('telefono', null)
+    : query.eq('telefono', mensaje.telefono)
+
+  const { data: subs, error } = await query
 
   if (error) {
     return { statusCode: 500, body: 'Error leyendo suscripciones: ' + error.message }
@@ -42,7 +47,9 @@ export const handler = async (event) => {
 
   const notificacion = JSON.stringify({
     title: 'BYVIIC',
-    body: mensaje.texto?.slice(0, 120) || 'Tienes un mensaje nuevo',
+    body: mensaje.autor === 'cliente'
+      ? (mensaje.texto?.slice(0, 120) || 'Tienes un mensaje nuevo')
+      : `Victoria respondió: ${mensaje.texto?.slice(0, 100) || ''}`,
     url: '/',
   })
 

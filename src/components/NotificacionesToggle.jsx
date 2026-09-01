@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
-import { suscribirAPush } from '../../lib/push'
+import { supabase } from '../lib/supabase'
+import { suscribirAPush } from '../lib/push'
 
-export default function NotificacionesToggle() {
+// telefono: si se pasa, la suscripcion queda asociada a ese cliente
+// (para avisarle cuando Victoria responda). Si se omite, es una
+// suscripcion de admin (recibe aviso de mensajes nuevos de clientes).
+export default function NotificacionesToggle({ telefono = null, etiqueta = 'Activar notificaciones' }) {
   const [estado, setEstado] = useState('verificando') // verificando | inactivo | activo | error
   const [mensajeError, setMensajeError] = useState('')
 
@@ -34,6 +37,7 @@ export default function NotificacionesToggle() {
       endpoint: subscription.endpoint,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
+      telefono,
       activo: true,
     }, { onConflict: 'endpoint' })
 
@@ -53,7 +57,7 @@ export default function NotificacionesToggle() {
       {estado === 'activo' && <span style={styles.badgeOk}>🔔 Notificaciones activas</span>}
       {estado === 'inactivo' && (
         <button className="btn btn-outline" style={{ fontSize: 12 }} onClick={activar}>
-          Activar notificaciones
+          {etiqueta}
         </button>
       )}
       {estado === 'verificando' && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Verificando...</span>}
