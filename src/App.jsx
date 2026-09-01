@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { supabase } from './lib/supabase'
 import { CartProvider } from './context/CartContext'
 import { SesionClienteProvider, useSesionCliente } from './context/SesionClienteContext'
 import Navbar from './components/Navbar'
@@ -30,10 +31,39 @@ export default function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
   const [chatAbierto, setChatAbierto] = useState(false)
+  const [esAdmin, setEsAdmin] = useState(false)
+
+  useEffect(() => {
+    let activo = true
+
+    async function chequearAdmin(session) {
+      if (!session) {
+        if (activo) setEsAdmin(false)
+        return
+      }
+      const { data } = await supabase.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle()
+      if (activo) setEsAdmin(!!data)
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => chequearAdmin(session))
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      chequearAdmin(session)
+    })
+
+    return () => {
+      activo = false
+      sub.subscription.unsubscribe()
+    }
+  }, [])
 
   const handleAdminAccess = useCallback(() => {
-    setShowAdminLogin(true)
-  }, [])
+    if (esAdmin) {
+      setVista('admin')
+    } else {
+      setShowAdminLogin(true)
+    }
+  }, [esAdmin])
 
   const handleAdminSuccess = useCallback(() => {
     setShowAdminLogin(false)

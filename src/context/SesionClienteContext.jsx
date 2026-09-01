@@ -1,59 +1,74 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { normalizarTelefono } from '../lib/telefono'
 
-// No hay verificación (OTP) del teléfono — riesgo aceptado, mismo nivel de
-// seguridad que el ADMIN_PIN en texto plano. La sesión vive en localStorage
-// sin JWT ni backend de auth.
-const STORAGE_KEY = 'byviic_cliente_session'
-
+// No hay verificación (OTP) del teléfono — riesgo aceptado. La persistencia
+// y el aislamiento entre clientes ya no dependen de localStorage: cada
+// sesión usa una cuenta anónima real de Supabase Auth (auth.signInAnonymously),
+// y las políticas RLS de `clientes`/`mensajes` solo dejan ver/escribir las
+// filas asociadas al auth.uid() de esa sesión.
 const SesionClienteContext = createContext(null)
 
-function leerSesionGuardada() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
 export function SesionClienteProvider({ children }) {
-  const [sesion, setSesion] = useState(leerSesionGuardada)
+  const [sesion, setSesion] = useState(null)
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let activo = true
+
+    async function hidratar() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        if (activo) setCargando(false)
+        return
+      }
+      const { data } = await supabase
+        .from('clientes')
+        .select('telefono, nombre')
+        .eq('auth_uid', session.user.id)
+        .maybeSingle()
+
+      if (activo) {
+        if (data) setSesion({ nombre: data.nombre, telefono: data.telefono })
+        setCargando(false)
+      }
+    }
+
+    hidratar()
+    return () => { activo = false }
+  }, [])
 
   const iniciarSesion = useCallback(async ({ nombre, telefono }) => {
     const telefonoNormalizado = normalizarTelefono(telefono)
     if (!telefonoNormalizado || !nombre?.trim()) return
 
+    let { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      const { data, error } = await supabase.auth.signInAnonymously()
+      if (error) return
+      session = data.session
+    }
+
     const nueva = { nombre: nombre.trim(), telefono: telefonoNormalizado }
 
     await supabase.from('clientes').upsert({
+      auth_uid: session.user.id,
       telefono: telefonoNormalizado,
       nombre: nueva.nombre,
       ultima_actividad: new Date().toISOString(),
     })
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nueva))
-    } catch {
-      // localStorage no disponible (modo privado, etc.) — la sesión igual
-      // funciona en memoria durante esta visita.
-    }
     setSesion(nueva)
     return nueva
   }, [])
 
-  const cerrarSesion = useCallback(() => {
-    try {
-      localStorage.removeItem(STORAGE_KEY)
-    } catch {
-      // ver nota en iniciarSesion
-    }
+  const cerrarSesion = useCallback(async () => {
+    await supabase.auth.signOut()
     setSesion(null)
   }, [])
 
   return (
-    <SesionClienteContext.Provider value={{ sesion, iniciarSesion, cerrarSesion }}>
+    <SesionClienteContext.Provider value={{ sesion, cargando, iniciarSesion, cerrarSesion }}>
       {children}
     </SesionClienteContext.Provider>
   )

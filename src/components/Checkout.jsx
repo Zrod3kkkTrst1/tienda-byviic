@@ -92,7 +92,10 @@ export default function Checkout({ onClose, onPedidoEnviado }) {
         ? `Retiro en estación de metro — Estación: ${estacionMetro.trim()} | Delivery: $${COSTO_METRO.toFixed(2)}`
         : `Retiro en tienda${diaRetiro.trim() ? ` — Día: ${diaRetiro.trim()}` : ''}`
 
+    const { data: { session } } = await supabase.auth.getSession()
+
     const { data, error } = await supabase.from('pedidos').insert({
+      auth_uid: session?.user?.id ?? null,
       cliente_nombre: nombre.trim(),
       cliente_tel: telefono.trim(),
       items: items.map(i => ({

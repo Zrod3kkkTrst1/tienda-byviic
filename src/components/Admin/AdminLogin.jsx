@@ -1,43 +1,58 @@
 import { useState } from 'react'
-import { ADMIN_PIN } from '../../lib/constants'
+import { supabase } from '../../lib/supabase'
 
 export default function AdminLogin({ onSuccess, onClose }) {
-  const [pin, setPin] = useState('')
-  const [error, setError] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(null)
   const [shake, setShake] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    if (pin === ADMIN_PIN) {
-      onSuccess()
-    } else {
-      setError(true)
+    setLoading(true)
+    setError(null)
+
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (authError) {
+      setError('Email o contraseña incorrectos')
       setShake(true)
-      setPin('')
+      setPassword('')
       setTimeout(() => setShake(false), 400)
+      setLoading(false)
+      return
     }
+
+    onSuccess()
   }
 
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={{ ...styles.card, animation: shake ? 'shake 0.4s ease' : 'slideInUp 0.25s ease' }}>
         <h2 style={styles.title}>Acceso privado</h2>
-        <p style={styles.sub}>Ingresa el PIN para continuar</p>
+        <p style={styles.sub}>Inicia sesión para continuar</p>
         <form onSubmit={handleSubmit} style={styles.form}>
           <input
             className="input"
-            type="password"
-            inputMode="numeric"
-            maxLength={8}
-            placeholder="••••"
-            value={pin}
-            onChange={e => { setPin(e.target.value); setError(false) }}
-            style={{ textAlign: 'center', fontSize: 20, letterSpacing: 8 }}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setError(null) }}
+            autoComplete="email"
             autoFocus
           />
-          {error && <p style={styles.error}>PIN incorrecto</p>}
-          <button className="btn btn-primary" style={{ width: '100%' }} type="submit">
-            Ingresar
+          <input
+            className="input"
+            type="password"
+            placeholder="Contraseña"
+            value={password}
+            onChange={e => { setPassword(e.target.value); setError(null) }}
+            autoComplete="current-password"
+          />
+          {error && <p style={styles.error}>{error}</p>}
+          <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={loading}>
+            {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
       </div>

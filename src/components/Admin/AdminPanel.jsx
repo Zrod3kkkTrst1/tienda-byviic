@@ -64,9 +64,18 @@ export default function AdminPanel({ onClose }) {
     <div style={styles.wrap}>
       <div style={styles.topbar}>
         <span style={styles.topbarTitle}>Panel · BY VIIC</span>
-        <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={onClose}>
-          Salir del panel
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={onClose}>
+            Salir del panel
+          </button>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: 12, color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+            onClick={async () => { await supabase.auth.signOut(); onClose() }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </div>
 
       <div style={styles.tabs}>
