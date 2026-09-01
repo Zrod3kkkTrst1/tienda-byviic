@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { normalizarTelefono } from '../../lib/telefono'
 import ProductForm from './ProductForm'
 import ChatsTab from './ChatsTab'
+import NotificacionesToggle from './NotificacionesToggle'
 
 const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(n ?? 0)
 
@@ -64,7 +65,8 @@ export default function AdminPanel({ onClose }) {
     <div style={styles.wrap}>
       <div style={styles.topbar}>
         <span style={styles.topbarTitle}>Panel · BY VIIC</span>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <NotificacionesToggle />
           <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={onClose}>
             Salir del panel
           </button>
