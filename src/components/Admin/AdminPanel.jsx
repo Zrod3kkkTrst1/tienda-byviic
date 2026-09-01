@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { normalizarTelefono } from '../../lib/telefono'
 import ProductForm from './ProductForm'
 import ChatsTab from './ChatsTab'
 
@@ -52,7 +53,10 @@ export default function AdminPanel({ onClose }) {
   const [chatTelefono, setChatTelefono] = useState(null)
 
   function abrirChat(telefono) {
-    setChatTelefono(telefono)
+    // El checkout guarda cliente_tel tal cual lo escribió el cliente (sin
+    // normalizar), pero mensajes/clientes usan el teléfono normalizado de
+    // la sesión — hay que normalizar aquí para que coincida con esa fila.
+    setChatTelefono(normalizarTelefono(telefono))
     setTab('chats')
   }
 
