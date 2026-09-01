@@ -22,7 +22,7 @@ const PROVINCIAS = [
 ]
 
 export default function Checkout({ onClose, onPedidoEnviado }) {
-  const { items, totalProductos, pagarAhora, saldoPendiente, clearCart } = useCart()
+  const { items, totalProductos, pagarAhora, saldoPendiente, clearCart, setIsOpen: setCarritoAbierto } = useCart()
   const { sesion } = useSesionCliente()
 
   const [mostrarLogin, setMostrarLogin] = useState(false)
@@ -173,6 +173,7 @@ export default function Checkout({ onClose, onPedidoEnviado }) {
     })
 
     clearCart()
+    setCarritoAbierto(false)
     setLoading(false)
     onClose()
     onPedidoEnviado?.()

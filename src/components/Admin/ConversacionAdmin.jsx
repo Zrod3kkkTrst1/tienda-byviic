@@ -56,7 +56,10 @@ export default function ConversacionAdmin({ telefono, onVolver }) {
     const contenido = texto.trim()
     if (!contenido) return
     setTexto('')
-    await supabase.from('mensajes').insert({ telefono, autor: 'admin', texto: contenido })
+    const { data } = await supabase.from('mensajes').insert({ telefono, autor: 'admin', texto: contenido }).select().single()
+    if (data) {
+      setMensajes(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
+    }
   }
 
   return (

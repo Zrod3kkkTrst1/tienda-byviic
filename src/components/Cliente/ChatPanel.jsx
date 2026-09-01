@@ -53,11 +53,18 @@ export default function ChatPanel({ isOpen, onClose }) {
     const contenido = texto.trim()
     if (!contenido || !sesion) return
     setTexto('')
-    await supabase.from('mensajes').insert({
+    // Se agrega localmente de una vez (no depende de que Realtime ya esté
+    // suscrito) — si el evento de Realtime llega después, el dedup por id
+    // en el handler de arriba evita que se duplique.
+    const { data } = await supabase.from('mensajes').insert({
       telefono: sesion.telefono,
       autor: 'cliente',
       texto: contenido,
-    })
+    }).select().single()
+
+    if (data) {
+      setMensajes(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
+    }
   }
 
   if (!isOpen || !sesion) return null
