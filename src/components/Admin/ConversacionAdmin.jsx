@@ -51,6 +51,17 @@ export default function ConversacionAdmin({ telefono, onVolver }) {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [mensajes])
 
+  async function eliminarConversacion() {
+    if (!confirm('¿Eliminar esta conversación? Esta acción no se puede deshacer.')) return
+    const { error: errMsg } = await supabase.from('mensajes').delete().eq('telefono', telefono)
+    const { error: errCli } = await supabase.from('clientes').delete().eq('telefono', telefono)
+    if (errMsg || errCli) {
+      alert('Error al eliminar: ' + (errMsg?.message || errCli?.message))
+      return
+    }
+    onVolver()
+  }
+
   async function enviar(e) {
     e.preventDefault()
     const contenido = texto.trim()
@@ -70,6 +81,13 @@ export default function ConversacionAdmin({ telefono, onVolver }) {
           <p style={{ fontWeight: 600 }}>{nombre}</p>
           <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{telefono}</p>
         </div>
+        <button
+          className="btn btn-ghost"
+          style={{ fontSize: 12, color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+          onClick={eliminarConversacion}
+        >
+          Eliminar conversación
+        </button>
       </div>
 
       <div style={styles.mensajes} ref={listRef}>

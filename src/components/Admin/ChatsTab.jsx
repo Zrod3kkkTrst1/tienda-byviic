@@ -28,6 +28,17 @@ export default function ChatsTab({ telefonoInicial, onTelefonoConsumido }) {
 
   useEffect(() => { cargar() }, [])
 
+  async function eliminarConversacion(telefono) {
+    if (!confirm('¿Eliminar esta conversación? Esta acción no se puede deshacer.')) return
+    const { error: errMsg } = await supabase.from('mensajes').delete().eq('telefono', telefono)
+    const { error: errCli } = await supabase.from('clientes').delete().eq('telefono', telefono)
+    if (errMsg || errCli) {
+      alert('Error al eliminar: ' + (errMsg?.message || errCli?.message))
+      return
+    }
+    cargar()
+  }
+
   useEffect(() => {
     if (telefonoInicial) {
       setSeleccionado(telefonoInicial)
@@ -68,10 +79,12 @@ export default function ChatsTab({ telefonoInicial, onTelefonoConsumido }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {conversaciones.map(c => (
-            <button
+            <div
               key={c.telefono}
               style={styles.convCard}
               onClick={() => setSeleccionado(c.telefono)}
+              role="button"
+              tabIndex={0}
             >
               <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
                 <p style={{ fontWeight: 600, fontSize: 15 }}>{c.nombre || c.telefono}</p>
@@ -85,7 +98,14 @@ export default function ChatsTab({ telefonoInicial, onTelefonoConsumido }) {
               {c.noLeidos > 0 && (
                 <span style={styles.badge}>{c.noLeidos}</span>
               )}
-            </button>
+              <button
+                className="btn btn-ghost"
+                style={{ fontSize: 11, color: 'var(--color-error)', borderColor: 'var(--color-error)', flexShrink: 0 }}
+                onClick={e => { e.stopPropagation(); eliminarConversacion(c.telefono) }}
+              >
+                Eliminar
+              </button>
+            </div>
           ))}
         </div>
       )}
