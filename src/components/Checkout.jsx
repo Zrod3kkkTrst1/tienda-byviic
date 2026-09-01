@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useCart } from '../context/CartContext'
+import { useSesionCliente } from '../context/SesionClienteContext'
 import { supabase } from '../lib/supabase'
-import { WHATSAPP_NUMERO, NOMBRE_TIENDA } from '../lib/constants'
+import { NOMBRE_TIENDA } from '../lib/constants'
+import LoginCliente from './Cliente/LoginCliente'
 
 const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(n)
 
@@ -19,9 +21,11 @@ const PROVINCIAS = [
   'Herrera','Los Santos','Veraguas','Bocas del Toro','Darién','Ngäbe-Buglé',
 ]
 
-export default function Checkout({ onClose }) {
+export default function Checkout({ onClose, onPedidoEnviado }) {
   const { items, totalProductos, pagarAhora, saldoPendiente, clearCart } = useCart()
+  const { sesion } = useSesionCliente()
 
+  const [mostrarLogin, setMostrarLogin] = useState(false)
   const [nombre,        setNombre]        = useState('')
   const [telefono,      setTelefono]      = useState('')
   const [nombreCompleto, setNombreCompleto] = useState('')
@@ -88,7 +92,7 @@ export default function Checkout({ onClose }) {
         ? `Retiro en estación de metro — Estación: ${estacionMetro.trim()} | Delivery: $${COSTO_METRO.toFixed(2)}`
         : `Retiro en tienda${diaRetiro.trim() ? ` — Día: ${diaRetiro.trim()}` : ''}`
 
-    const { error } = await supabase.from('pedidos').insert({
+    const { data, error } = await supabase.from('pedidos').insert({
       cliente_nombre: nombre.trim(),
       cliente_tel: telefono.trim(),
       items: items.map(i => ({
@@ -99,15 +103,15 @@ export default function Checkout({ onClose }) {
       total: totalProductos + costoEntrega,
       pagado_ahora: mitad,
       saldo_pendiente: pendienteTotal,
-      metodo_pago: 'whatsapp',
+      metodo_pago: 'chat',
       estado,
       notas: notasEnvio,
-    })
+    }).select().single()
 
-    return error
+    return { data, error }
   }
 
-  function armarMensajeWA() {
+  function armarResumenPedido() {
     const empresa = METODOS_ENTREGA.find(m => m.key === metodoEntrega)?.label || metodoEntrega
     const lineas = items.map(i => {
       const sub  = fmt(i.precio * i.cantidad)
@@ -142,22 +146,36 @@ export default function Checkout({ onClose }) {
     ].filter(l => l !== null).join('\n')
   }
 
-  async function handleWhatsApp() {
+  async function handleEnviarPedido(sesionOverride) {
     if (!esValido || loading) return
+
+    const sesionActiva = sesionOverride || sesion
+    if (!sesionActiva) {
+      setMostrarLogin(true)
+      return
+    }
+
     setLoading(true)
     setError(null)
 
-    const err = await guardarPedido()
+    const { data: pedido, error: err } = await guardarPedido()
     if (err) {
       setError('Hubo un problema al guardar tu pedido. Intenta de nuevo.')
       setLoading(false)
       return
     }
 
-    const url = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(armarMensajeWA())}`
-    window.open(url, '_blank', 'noopener')
+    await supabase.from('mensajes').insert({
+      telefono: sesionActiva.telefono,
+      autor: 'cliente',
+      texto: armarResumenPedido(),
+      pedido_id: pedido?.id ?? null,
+    })
+
     clearCart()
+    setLoading(false)
     onClose()
+    onPedidoEnviado?.()
   }
 
   return (
@@ -316,22 +334,17 @@ export default function Checkout({ onClose }) {
 
           {error && <p style={styles.error}>{error}</p>}
 
-          {/* Botón WhatsApp */}
+          {/* Botón enviar pedido */}
           <button
             className="btn btn-primary"
             style={{ width: '100%', gap: 8 }}
-            onClick={handleWhatsApp}
+            onClick={() => handleEnviarPedido()}
             disabled={!esValido || loading}
           >
             {loading ? (
               <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
             ) : (
-              <>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/>
-                </svg>
-                Pedir por WhatsApp
-              </>
+              'Enviar pedido'
             )}
           </button>
 
@@ -342,6 +355,13 @@ export default function Checkout({ onClose }) {
           </div>
         </div>
       </div>
+
+      {mostrarLogin && (
+        <LoginCliente
+          onSuccess={(nuevaSesion) => { setMostrarLogin(false); handleEnviarPedido(nuevaSesion) }}
+          onClose={() => setMostrarLogin(false)}
+        />
+      )}
     </div>
   )
 }

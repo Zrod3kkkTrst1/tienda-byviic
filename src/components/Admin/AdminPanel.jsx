@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import ProductForm from './ProductForm'
+import ChatsTab from './ChatsTab'
 
 const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(n ?? 0)
 
+// Ya no se usan en el JSX (reemplazadas por el chat interno) — se dejan como
+// respaldo manual temporal mientras se confirma que el push le llega bien a
+// Victoria. Ver plan de chat interno para el criterio de cuándo retirarlas.
 function telParaWA(tel) {
   const digitos = (tel || '').replace(/\D/g, '')
   if (!digitos) return null
@@ -45,6 +49,12 @@ function estadoInfo(key) {
 
 export default function AdminPanel({ onClose }) {
   const [tab, setTab] = useState('pedidos')
+  const [chatTelefono, setChatTelefono] = useState(null)
+
+  function abrirChat(telefono) {
+    setChatTelefono(telefono)
+    setTab('chats')
+  }
 
   return (
     <div style={styles.wrap}>
@@ -57,12 +67,19 @@ export default function AdminPanel({ onClose }) {
 
       <div style={styles.tabs}>
         <TabBtn active={tab === 'pedidos'}   onClick={() => setTab('pedidos')}>Pedidos</TabBtn>
+        <TabBtn active={tab === 'chats'}     onClick={() => setTab('chats')}>Chats</TabBtn>
         <TabBtn active={tab === 'productos'} onClick={() => setTab('productos')}>Productos</TabBtn>
         <TabBtn active={tab === 'entregas'}  onClick={() => setTab('entregas')}>Horario de entregas</TabBtn>
       </div>
 
       <div style={styles.content}>
-        {tab === 'pedidos'   && <PedidosTab />}
+        {tab === 'pedidos'   && <PedidosTab onAbrirChat={abrirChat} />}
+        {tab === 'chats'     && (
+          <ChatsTab
+            telefonoInicial={chatTelefono}
+            onTelefonoConsumido={() => setChatTelefono(null)}
+          />
+        )}
         {tab === 'productos' && <ProductosTab />}
         {tab === 'entregas'  && <EntregasTab />}
       </div>
@@ -79,7 +96,7 @@ function TabBtn({ children, active, onClick }) {
 }
 
 /* ─── PESTAÑA PEDIDOS ──────────────────────────────────────── */
-function PedidosTab() {
+function PedidosTab({ onAbrirChat }) {
   const [pedidos, setPedidos]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [expandido, setExpandido] = useState(null)
@@ -237,19 +254,16 @@ function PedidosTab() {
                   <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: info.bg, color: info.color, whiteSpace: 'nowrap' }}>
                     {info.label}
                   </span>
-                  {waLinkPedido(p) && (
-                    <a
-                      href={waLinkPedido(p)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      title="Escribirle por WhatsApp"
+                  {p.cliente_tel && (
+                    <button
+                      onClick={e => { e.stopPropagation(); onAbrirChat(p.cliente_tel) }}
+                      title="Abrir chat"
                       style={styles.waBtn}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                       </svg>
-                    </a>
+                    </button>
                   )}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" style={{ marginLeft: 8, transform: abierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }}>
                     <polyline points="6 9 12 15 18 9"/>
@@ -317,16 +331,14 @@ function PedidosTab() {
                           Marcar saldo pagado ({fmt(p.saldo_pendiente)})
                         </button>
                       )}
-                      {waLinkPedido(p) && (
-                        <a
-                          href={waLinkPedido(p)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {p.cliente_tel && (
+                        <button
                           className="btn btn-outline"
-                          style={{ fontSize: 12, textDecoration: 'none' }}
+                          style={{ fontSize: 12 }}
+                          onClick={() => onAbrirChat(p.cliente_tel)}
                         >
-                          Escribirle por WhatsApp
-                        </a>
+                          Abrir chat
+                        </button>
                       )}
                     </div>
 
@@ -831,6 +843,8 @@ const styles = {
     borderRadius: '50%',
     background: '#e9f9ef',
     color: '#25a854',
+    border: 'none',
+    cursor: 'pointer',
     flexShrink: 0,
   },
 }

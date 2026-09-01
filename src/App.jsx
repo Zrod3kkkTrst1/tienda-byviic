@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { CartProvider } from './context/CartContext'
+import { SesionClienteProvider, useSesionCliente } from './context/SesionClienteContext'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import CategorySection from './components/CategorySection'
@@ -9,15 +10,26 @@ import AboutSection from './components/AboutSection'
 import Footer from './components/Footer'
 import Cart from './components/Cart'
 import Checkout from './components/Checkout'
+import LoginCliente from './components/Cliente/LoginCliente'
+import ChatPanel from './components/Cliente/ChatPanel'
 import AdminLogin from './components/Admin/AdminLogin'
 import AdminPanel from './components/Admin/AdminPanel'
 import HorarioEntregas from './components/HorarioEntregas'
 import MobileDevPreview from './components/Dev/MobileDevPreview'
 
+function ChatGateway({ open, onClose }) {
+  const { sesion } = useSesionCliente()
+  if (!open) return null
+  return sesion
+    ? <ChatPanel isOpen={open} onClose={onClose} />
+    : <LoginCliente onSuccess={() => {}} onClose={onClose} />
+}
+
 export default function App() {
   const [vista, setVista] = useState('tienda')
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
+  const [chatAbierto, setChatAbierto] = useState(false)
 
   const handleAdminAccess = useCallback(() => {
     setShowAdminLogin(true)
@@ -33,24 +45,32 @@ export default function App() {
   }
 
   return (
-    <CartProvider>
-      <Navbar onAdminAccess={handleAdminAccess} />
-      <HorarioEntregas />
-      <Hero />
-      <CategorySection />
-      <Catalog />
-      <MobilePreview />
-      <AboutSection />
-      <Footer />
-      <Cart onCheckout={() => setShowCheckout(true)} />
-      {showCheckout && <Checkout onClose={() => setShowCheckout(false)} />}
-      {showAdminLogin && (
-        <AdminLogin
-          onSuccess={handleAdminSuccess}
-          onClose={() => setShowAdminLogin(false)}
-        />
-      )}
-      <MobileDevPreview />
-    </CartProvider>
+    <SesionClienteProvider>
+      <CartProvider>
+        <Navbar onAdminAccess={handleAdminAccess} onChatAccess={() => setChatAbierto(true)} />
+        <HorarioEntregas />
+        <Hero />
+        <CategorySection />
+        <Catalog />
+        <MobilePreview />
+        <AboutSection />
+        <Footer />
+        <Cart onCheckout={() => setShowCheckout(true)} />
+        {showCheckout && (
+          <Checkout
+            onClose={() => setShowCheckout(false)}
+            onPedidoEnviado={() => setChatAbierto(true)}
+          />
+        )}
+        {showAdminLogin && (
+          <AdminLogin
+            onSuccess={handleAdminSuccess}
+            onClose={() => setShowAdminLogin(false)}
+          />
+        )}
+        <ChatGateway open={chatAbierto} onClose={() => setChatAbierto(false)} />
+        <MobileDevPreview />
+      </CartProvider>
+    </SesionClienteProvider>
   )
 }
