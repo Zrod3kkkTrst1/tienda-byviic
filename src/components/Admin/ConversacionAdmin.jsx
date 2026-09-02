@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import { normalizarTelefono } from '../../lib/telefono'
+import { MENSAJE_BIENVENIDA, armarConfirmacionPedido } from '../../lib/mensajes'
 
 export default function ConversacionAdmin({ telefono, onVolver }) {
   const [mensajes, setMensajes] = useState([])
   const [nombre, setNombre] = useState('')
   const [texto, setTexto] = useState('')
   const [loading, setLoading] = useState(true)
+  const [enviandoRapido, setEnviandoRapido] = useState(false)
   const listRef = useRef(null)
 
   useEffect(() => {
@@ -62,15 +65,48 @@ export default function ConversacionAdmin({ telefono, onVolver }) {
     onVolver()
   }
 
+  async function enviarMensajeAdmin(contenido, pedidoId = null) {
+    const { data } = await supabase.from('mensajes').insert({ telefono, autor: 'admin', texto: contenido, pedido_id: pedidoId }).select().single()
+    if (data) {
+      setMensajes(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
+    }
+    return data
+  }
+
   async function enviar(e) {
     e.preventDefault()
     const contenido = texto.trim()
     if (!contenido) return
     setTexto('')
-    const { data } = await supabase.from('mensajes').insert({ telefono, autor: 'admin', texto: contenido }).select().single()
-    if (data) {
-      setMensajes(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
+    await enviarMensajeAdmin(contenido)
+  }
+
+  async function enviarInstruccionesPago() {
+    setEnviandoRapido(true)
+    await enviarMensajeAdmin(MENSAJE_BIENVENIDA)
+    setEnviandoRapido(false)
+  }
+
+  async function enviarConfirmacionPedido() {
+    setEnviandoRapido(true)
+    // pedidos.cliente_tel es el texto crudo que el cliente escribio en el
+    // checkout (sin normalizar) — se busca comparando la version
+    // normalizada, igual que al abrir el chat desde Pedidos.
+    const { data: pedidos } = await supabase
+      .from('pedidos')
+      .select('*')
+      .order('creado_en', { ascending: false })
+
+    const pedido = (pedidos || []).find(p => normalizarTelefono(p.cliente_tel) === telefono)
+
+    if (!pedido) {
+      alert('No se encontró ningún pedido de este cliente.')
+      setEnviandoRapido(false)
+      return
     }
+
+    await enviarMensajeAdmin(armarConfirmacionPedido(pedido), pedido.id)
+    setEnviandoRapido(false)
   }
 
   return (
@@ -107,6 +143,25 @@ export default function ConversacionAdmin({ telefono, onVolver }) {
             </div>
           ))
         )}
+      </div>
+
+      <div style={styles.quickReplies}>
+        <button
+          className="btn btn-outline"
+          style={{ fontSize: 12 }}
+          onClick={enviarInstruccionesPago}
+          disabled={enviandoRapido}
+        >
+          💳 Instrucciones de pago
+        </button>
+        <button
+          className="btn btn-outline"
+          style={{ fontSize: 12 }}
+          onClick={enviarConfirmacionPedido}
+          disabled={enviandoRapido}
+        >
+          📋 Confirmar pedido
+        </button>
       </div>
 
       <form onSubmit={enviar} style={styles.inputRow}>
@@ -173,6 +228,13 @@ const styles = {
     background: 'var(--color-bg-warm)',
     color: 'var(--color-text)',
     borderBottomLeftRadius: 2,
+  },
+  quickReplies: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+    padding: '10px 20px',
+    borderTop: '1px solid var(--color-border-light)',
   },
   inputRow: {
     display: 'flex',
