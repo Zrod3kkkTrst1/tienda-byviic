@@ -24,7 +24,18 @@ BEGIN
     VALUES (
       NEW.telefono,
       'admin',
-      'Bienvenida a BYVIIC. Para realizar tu pedido debes enviar el 50% o cancelar por Yappy al 6540-4105 Ana Rivera, y enviarnos el comprobante al 6681-1682. No hacemos devoluciones una vez realizado el abono.',
+      $msg$¡Bienvenida a BYVIIC!
+
+Para realizar tu pedido debes enviar el 50% o cancelar el total por Yappy:
+📱 6540-4105
+👤 Ana Rivera
+
+Envíanos el comprobante de pago a:
+📩 6681-1682
+
+⚠️ No hacemos devoluciones una vez realizado el abono.
+
+✨$msg$,
       NEW.pedido_id
     );
   END IF;

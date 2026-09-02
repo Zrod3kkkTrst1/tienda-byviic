@@ -3,7 +3,20 @@
 // solo lugar. El trigger auto_responder_pedido() en Supabase (ver
 // supabase/auto_responder_pedido.sql) tiene su propia copia en SQL — si
 // cambias este texto, actualiza tambien ese trigger.
-export const MENSAJE_BIENVENIDA = 'Bienvenida a BYVIIC. Para realizar tu pedido debes enviar el 50% o cancelar por Yappy al 6540-4105 Ana Rivera, y enviarnos el comprobante al 6681-1682. No hacemos devoluciones una vez realizado el abono.'
+export const MENSAJE_BIENVENIDA = [
+  '¡Bienvenida a BYVIIC!',
+  '',
+  'Para realizar tu pedido debes enviar el 50% o cancelar el total por Yappy:',
+  '📱 6540-4105',
+  '👤 Ana Rivera',
+  '',
+  'Envíanos el comprobante de pago a:',
+  '📩 6681-1682',
+  '',
+  '⚠️ No hacemos devoluciones una vez realizado el abono.',
+  '',
+  '✨',
+].join('\n')
 
 const fmt = (n) => new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(n ?? 0)
 
